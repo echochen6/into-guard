@@ -477,7 +477,8 @@ function renderAuth(){
       <div class="field"><label>Password</label><input id="f_pass" type="password" placeholder="${mode==='signup'?'Create a password':'Your password'}" autocomplete="current-password"></div>
       <div class="autherr" id="authErr"></div>
       <button class="btn-primary" id="authBtn">${mode==='signup'?'Create account & continue':'Sign in'}</button>
-      <div class="reassure"><span>🔒</span> <b>Demo only.</b>&nbsp;Your account stays in this browser — nothing is uploaded.</div>
+      <div class="reassure" style="text-align:center;line-height:1.5"><span>🔒</span> This is just your login. <b>We don't read any email</b> until you connect an inbox in the next step — that's a separate, read-only permission.</div>
+      <div class="reassure" style="margin-top:6px;font-size:11px">Demo only — your account stays in this browser, nothing is uploaded.</div>
     </div>`;
 
   scroll.querySelectorAll('.toggle button').forEach(b=>{
@@ -511,7 +512,7 @@ function renderConnect(){
         <div class="prov"><span class="g">📮</span>iCloud Mail</div>
       </div>
       <button class="btn-primary" id="connectBtn">Connect inbox</button>
-      <div class="reassure"><span>🔒</span> <b>Read-only.</b>&nbsp;We only scan receipts — never your personal email.</div>
+      <div class="reassure" style="text-align:center;line-height:1.5"><span>🔒</span> <b>Read-only, receipts only.</b> We match billing senders and receipt keywords — we never open your personal email. This can be any mailbox, not just your login email.</div>
     </div>`;
   document.getElementById('connectBtn').onclick = runScan;
 }
