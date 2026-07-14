@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>INTO Guard · your spending gatekeeper</title>
+<style>
+  :root{
+    --paper:#FBF6EC;
+    --card:#FFFFFF;
+    --ink:#2C2A25;
+    --ink-soft:#736B5D;
+    --ink-faint:#A79E8C;
+    --line:#EBE2D2;
+    --line-soft:#F2EBDD;
+    --teal:#2F7A6B;
+    --teal-deep:#215A4E;
+    --teal-tint:#E6F0EC;
+    --honey:#DE8E2C;
+    --honey-deep:#B96F16;
+    --honey-tint:#FBEBD1;
+    --alert:#C1503A;
+    --alert-tint:#F7E2DB;
+    --font:"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --font-num:"Georgia","Times New Roman",serif;
+    --shadow:0 22px 60px -30px rgba(70,50,20,.5);
+    --shadow-sm:0 6px 18px -12px rgba(70,50,20,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);color:var(--ink);
+    background:
+      radial-gradient(130% 80% at 50% -10%, #F4E3C4 0%, rgba(244,227,196,0) 55%),
+      linear-gradient(180deg,#F1E7D3 0%, #E7DBC2 100%);
+    min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:22px 12px;
+  }
+
+  /* phone frame */
+  .phone{
+    width:100%;max-width:414px;height:min(880px,95dvh);
+    background:var(--paper);border-radius:38px;overflow:hidden;
+    box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column;
+    border:1px solid rgba(255,255,255,.7);
+  }
+  @media (max-width:446px){ body{padding:0} .phone{border-radius:0;height:100dvh;max-width:none} }
+
+  /* top bar */
+  .top{
+    padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(180deg,#FFFDF8,#FBF6EC);border-bottom:1px solid var(--line-soft);
+    flex-shrink:0;
+  }
+  .brand{display:flex;align-items:center;gap:10px}
+  .mark{width:32px;height:32px;border-radius:10px;
+    background:conic-gradient(from 200deg,var(--teal),#4FA894,var(--teal-deep));
+    display:grid;place-items:center;color:#fff;font-size:16px;
+    box-shadow:0 5px 12px -5px rgba(47,122,107,.7)}
+  .brand b{font-size:16px;letter-spacing:.01em;line-height:1.1}
+  .brand small{display:block;font-size:9.5px;font-weight:600;letter-spacing:.16em;color:var(--teal);text-transform:uppercase;margin-top:1px}
+  .topactions{display:flex;gap:8px}
+  .reset{border:1px solid var(--line);background:#fff;color:var(--ink-soft);font:inherit;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer}
+  .reset:active{transform:scale(.95)}
+  .bpbtn{border-color:#EAD3A2;background:var(--honey-tint);color:var(--honey-deep);font-weight:700}
+  .bpbtn.on{background:var(--honey-deep);color:#fff;border-color:var(--honey-deep)}
+
+  /* scroll area */
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .pad{padding:18px 18px 30px}
+  .eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--honey-deep);margin-bottom:11px}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+  /* ============ CONNECT / ONBOARDING ============ */
+  .connect{padding:34px 26px 26px;display:flex;flex-direction:column;height:100%}
+  .connect .badge{width:60px;height:60px;border-radius:18px;
+    background:conic-gradient(from 200deg,var(--teal),#4FA894,var(--teal-deep));
+    display:grid;place-items:center;font-size:30px;color:#fff;margin-bottom:26px;
+    box-shadow:0 12px 26px -10px rgba(47,122,107,.65)}
+  .connect h1{font-size:27px;line-height:1.22;font-weight:700;letter-spacing:-.01em;margin-bottom:14px}
+  .connect h1 em{font-style:normal;color:var(--honey-deep)}
+  .connect p.sub{font-size:15px;line-height:1.55;color:var(--ink-soft);margin-bottom:auto}
+  .provider-row{display:flex;gap:9px;margin:24px 0 14px}
+  .prov{flex:1;border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px 8px;text-align:center;font-size:12px;font-weight:600;color:var(--ink-soft)}
+  .prov .g{font-size:19px;display:block;margin-bottom:4px}
+  .btn-primary{border:0;border-radius:15px;padding:16px;width:100%;font:inherit;font-size:15.5px;font-weight:700;color:#fff;cursor:pointer;
+    background:linear-gradient(180deg,#358573,#265f52);box-shadow:0 12px 24px -12px rgba(38,95,82,.85)}
+  .btn-primary:active{transform:scale(.985)}
+  .reassure{display:flex;align-items:center;gap:7px;justify-content:center;margin-top:14px;font-size:12px;color:var(--ink-faint)}
+  .reassure b{color:var(--teal-deep);font-weight:600}
+
+  /* auth (demo login / signup) */
+  .toggle{display:flex;background:#EFE6D4;border-radius:999px;padding:4px;gap:4px;margin:22px 0 20px}
+  .toggle button{flex:1;border:0;background:transparent;font:inherit;font-weight:700;font-size:14px;padding:11px;border-radius:999px;color:var(--ink-soft);cursor:pointer;transition:.18s}
+  .toggle button.on{background:#fff;color:var(--ink);box-shadow:0 3px 8px -3px rgba(80,60,20,.3)}
+  .field{margin-bottom:14px}
+  .field label{font-size:12px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:7px}
+  .field input{width:100%;border:1px solid var(--line);border-radius:13px;padding:14px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}
+  .field input::placeholder{color:var(--ink-faint)}
+  .field input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
+  .autherr{font-size:12.5px;color:var(--alert);font-weight:600;margin:2px 2px 12px;min-height:16px}
+
+  /* scanning */
+  .scan{display:flex;flex-direction:column;height:100%;padding:30px 26px}
+  .scan-head{font-size:19px;font-weight:700;margin-bottom:4px}
+  .scan-sub{font-size:13px;color:var(--ink-soft);margin-bottom:22px}
+  .scan-count{font-family:var(--font-num);font-size:58px;font-weight:700;line-height:1;color:var(--teal-deep);margin-bottom:2px}
+  .scan-count-lab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:24px}
+  .scan-list{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .scan-item{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 13px;
+    opacity:0;transform:translateY(8px);animation:pop .34s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes pop{to{opacity:1;transform:none}}
+  .scan-item .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+  .scan-item .nm{font-size:13.5px;font-weight:600;flex:1}
+  .scan-item .amt{font-family:var(--font-num);font-size:13px;color:var(--ink-soft)}
+  .scan-item .chk{color:var(--teal);font-weight:700;font-size:14px}
+
+  /* ============ SHARED CARDS ============ */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm)}
+  .greet{font-size:13px;color:var(--ink-soft);margin-bottom:2px}
+  .greet-h{font-size:21px;font-weight:700;letter-spacing:-.01em;margin-bottom:16px}
+
+  /* hero committed */
+  .hero{padding:20px;background:linear-gradient(165deg,#2E6E60 0%,#22564A 100%);border-radius:22px;color:#fff;margin-bottom:14px;
+    box-shadow:0 20px 40px -22px rgba(34,86,74,.9);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle,rgba(222,142,44,.35),transparent 70%)}
+  .hero .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.72;font-weight:700;margin-bottom:8px;position:relative}
+  .hero .big{font-family:var(--font-num);font-size:42px;font-weight:700;line-height:1;position:relative}
+  .hero .big span{font-size:18px;opacity:.7}
+  .hero .meter{height:8px;border-radius:99px;background:rgba(255,255,255,.2);margin:16px 0 8px;overflow:hidden;position:relative}
+  .hero .meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#F0B860,#DE8E2C)}
+  .hero .meter-lab{font-size:12px;opacity:.85;position:relative}
+  .hero .meter-lab b{font-weight:700}
+
+  /* leak hook */
+  .leak{padding:17px 18px;border-radius:18px;background:var(--alert-tint);border:1px solid #EBC7BC;margin-bottom:14px;cursor:pointer;transition:transform .12s}
+  .leak:active{transform:scale(.99)}
+  .leak-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .leak-top .dot{width:9px;height:9px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 4px rgba(193,80,58,.16)}
+  .leak-top .t{font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--alert);text-transform:uppercase}
+  .leak h3{font-size:16.5px;line-height:1.35;font-weight:700;margin-bottom:4px}
+  .leak h3 .n{font-family:var(--font-num);color:var(--alert)}
+  .leak .go{font-size:13px;color:var(--alert);font-weight:600;display:flex;align-items:center;gap:5px}
+
+  /* free-trial urgent card */
+  .trial{padding:17px 18px;border-radius:18px;background:linear-gradient(180deg,#FFF7E8,#FCEED0);border:1px solid #EFD59B;margin-bottom:14px;cursor:pointer;transition:transform .12s}
+  .trial:active{transform:scale(.99)}
+  .trial-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .trial-top .clock{font-size:14px}
+  .trial-top .t{font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--honey-deep);text-transform:uppercase}
+  .trial h3{font-size:16px;line-height:1.4;font-weight:700;margin-bottom:4px}
+  .trial h3 .n{font-family:var(--font-num);color:var(--honey-deep)}
+  .trial .go{font-size:13px;color:var(--honey-deep);font-weight:600;display:flex;align-items:center;gap:5px}
+  .countdown{font-size:10px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:6px;background:#F6C56A;color:#6a4406}
+  .countdown.soon{background:var(--alert);color:#fff}
+
+  /* saved counter */
+  .saved{padding:16px 18px;border-radius:18px;margin-bottom:14px;background:var(--honey-tint);border:1px solid #EFD5A8;display:flex;align-items:center;gap:14px}
+  .saved .coin{width:42px;height:42px;border-radius:12px;background:linear-gradient(180deg,#EDA53E,#C97C1B);display:grid;place-items:center;font-size:20px;flex-shrink:0;box-shadow:0 8px 16px -8px rgba(201,124,27,.8)}
+  .saved .txt{flex:1}
+  .saved .txt small{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--honey-deep);font-weight:700}
+  .saved .txt .v{font-family:var(--font-num);font-size:24px;font-weight:700;color:var(--honey-deep);line-height:1.1}
+  .saved .txt .v span{font-size:13px}
+
+  .sec-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin:20px 2px 10px}
+
+  /* two buckets: cancelable vs fixed */
+  .bucket{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s}
+  .bucket:active{transform:scale(.99)}
+  .bucket.teal{border-color:#C9E0D8;background:linear-gradient(180deg,#fff,#F3FAF7)}
+  .bucket .bic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:21px;background:var(--paper);flex-shrink:0}
+  .bucket.teal .bic{background:var(--teal-tint)}
+  .bucket .btxt{flex:1;min-width:0}
+  .bucket .bl{font-size:15.5px;font-weight:700}
+  .bucket .bd{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .bucket .bright{text-align:right;flex-shrink:0}
+  .bucket .bv{font-family:var(--font-num);font-size:17px;font-weight:700;line-height:1.1}
+  .bucket .bv span{font-size:11px;color:var(--ink-faint)}
+  .bucket .bgo{font-size:11px;font-weight:700;color:var(--teal-deep);margin-top:3px}
+  .bucket:not(.teal) .bgo{color:var(--ink-faint)}
+
+  /* ============ SUBSCRIPTIONS ============ */
+  .filterbar{display:flex;gap:8px;margin-bottom:14px}
+  .filt{border:1px solid var(--line);background:#fff;color:var(--ink-soft);font:inherit;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer}
+  .filt.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .subgroup-lab{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--alert);margin:6px 2px 10px}
+  .subgroup-lab.act{color:var(--ink-faint)}
+  .subgroup-lab .ln{flex:1;height:1px;background:var(--line)}
+  .sub{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px 14px;margin-bottom:9px;cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .sub:active{transform:scale(.99)}
+  .sub.zombie{border-color:#EBC7BC;background:linear-gradient(180deg,#fff,#FDF4F1)}
+  .sub.done{opacity:.5}
+  .sub.done .nm{text-decoration:line-through}
+  .sub .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+  .sub .mid{flex:1;min-width:0}
+  .sub .nm{font-size:14.5px;font-weight:700;margin-bottom:3px}
+  .sub .meta{font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 7px;border-radius:6px}
+  .tag.zt{background:var(--alert-tint);color:var(--alert)}
+  .tag.hike{background:var(--honey-tint);color:var(--honey-deep)}
+  .tag.cx{background:var(--teal-tint);color:var(--teal-deep)}
+  .tag.tr{background:#F6C56A;color:#6a4406}
+  .tag.tr.soon{background:var(--alert);color:#fff}
+  .sub .right{text-align:right;flex-shrink:0}
+  .sub .price{font-family:var(--font-num);font-size:15px;font-weight:700}
+  .sub .cyc{font-size:10.5px;color:var(--ink-faint)}
+
+  /* ============ DETAIL ============ */
+  .back{display:inline-flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;margin-bottom:16px;padding:4px 0}
+  .d-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .d-head .ic{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0}
+  .d-head .nm{font-size:20px;font-weight:700}
+  .d-head .pr{font-family:var(--font-num);font-size:14px;color:var(--ink-soft);margin-top:2px}
+  .d-stat{display:flex;gap:10px;margin-bottom:16px}
+  .d-stat .box{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px}
+  .d-stat .box small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;display:block;margin-bottom:5px}
+  .d-stat .box .v{font-family:var(--font-num);font-size:17px;font-weight:700}
+  .d-stat .box .v.warn{color:var(--alert)}
+  .callout{border-radius:15px;padding:15px 16px;margin-bottom:16px;font-size:13.5px;line-height:1.5}
+  .callout.warn{background:var(--alert-tint);border:1px solid #EBC7BC}
+  .callout.warn b{color:var(--alert)}
+  .callout.info{background:var(--teal-tint);border:1px solid #C9E0D8}
+  .callout.info b{color:var(--teal-deep)}
+  .guide{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+  .guide h4{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--honey-deep);font-weight:700;margin-bottom:14px}
+  .steps{list-style:none;display:flex;flex-direction:column;gap:0}
+  .steps li{display:flex;gap:12px;padding-bottom:15px;position:relative}
+  .steps li:not(:last-child)::before{content:"";position:absolute;left:12.5px;top:26px;bottom:2px;width:2px;background:var(--line)}
+  .steps li .n{width:26px;height:26px;border-radius:50%;background:var(--teal-tint);color:var(--teal-deep);font-family:var(--font-num);font-weight:700;font-size:13px;display:grid;place-items:center;flex-shrink:0;z-index:1}
+  .steps li .s{font-size:13.5px;line-height:1.5;padding-top:3px}
+  .steps li .s b{color:var(--teal-deep)}
+  .btn-cancel{border:0;border-radius:15px;padding:16px;width:100%;font:inherit;font-size:15px;font-weight:700;color:#fff;cursor:pointer;
+    background:linear-gradient(180deg,#CC5942,#A8402C);box-shadow:0 12px 24px -12px rgba(168,64,44,.8)}
+  .btn-cancel:active{transform:scale(.985)}
+  .btn-ghost{border:1px solid var(--line);border-radius:15px;padding:15px;width:100%;font:inherit;font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;background:#fff;margin-top:9px}
+
+  /* success overlay */
+  .success{position:absolute;inset:0;background:linear-gradient(170deg,#2E6E60,#22564A);z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:34px;text-align:center;color:#fff;
+    opacity:0;pointer-events:none;transition:opacity .3s}
+  .success.show{opacity:1;pointer-events:auto}
+  .success .ring{width:92px;height:92px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:44px;margin-bottom:24px;transform:scale(.6);transition:transform .45s cubic-bezier(.2,1.4,.4,1)}
+  .success.show .ring{transform:scale(1)}
+  .success h2{font-size:23px;font-weight:700;margin-bottom:10px}
+  .success .money{font-family:var(--font-num);font-size:46px;font-weight:700;color:#F2C273;margin:6px 0 8px}
+  .success p{font-size:14px;opacity:.85;line-height:1.5;max-width:26ch;margin-bottom:28px}
+  .success button{border:0;border-radius:14px;padding:14px 30px;font:inherit;font-size:15px;font-weight:700;color:var(--teal-deep);background:#fff;cursor:pointer}
+
+  /* ============ FIXED ============ */
+  .upcoming{background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 16px;margin-bottom:16px}
+  .up-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-soft)}
+  .up-row:last-child{border-bottom:0}
+  .up-row .day{width:42px;text-align:center;flex-shrink:0}
+  .up-row .day .d{font-family:var(--font-num);font-size:18px;font-weight:700;line-height:1}
+  .up-row .day .m{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:700}
+  .up-row .info{flex:1}
+  .up-row .info .n{font-size:14px;font-weight:600}
+  .up-row .info .c{font-size:11.5px;color:var(--ink-faint)}
+  .up-row .amt{font-family:var(--font-num);font-size:15px;font-weight:700}
+  .push{border-radius:16px;padding:15px 16px;background:linear-gradient(165deg,#3a3531,#26221f);color:#fff;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start}
+  .push .bell{font-size:20px;flex-shrink:0}
+  .push .pt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.6;font-weight:700;margin-bottom:4px}
+  .push .pm{font-size:14px;line-height:1.45;font-weight:600}
+  .push .pm .n{font-family:var(--font-num);color:#F2C273}
+
+  /* ============ BLUEPRINT ============ */
+  .bp-hero{padding:22px 20px;border-radius:20px;background:linear-gradient(165deg,#2E6E60,#22564A);color:#fff;margin-bottom:18px}
+  .bp-hero .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.7;font-weight:700;margin-bottom:10px}
+  .bp-hero h2{font-size:22px;line-height:1.3;font-weight:700}
+  .bp-hero h2 em{font-style:normal;color:#F2C273}
+  .bp{margin-bottom:16px}
+  .bp .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--honey-deep);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+  .bp .k .idx{font-family:var(--font-num);color:var(--ink-faint)}
+  .bp h3{font-size:17px;font-weight:700;line-height:1.32;margin-bottom:7px}
+  .bp p{font-size:13.5px;line-height:1.6;color:var(--ink-soft)}
+  .bp p b{color:var(--ink)}
+  .stat3{display:flex;gap:9px;margin:12px 0 4px}
+  .stat3 .s{flex:1;background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 10px;text-align:center}
+  .stat3 .s .v{font-family:var(--font-num);font-size:21px;font-weight:700;color:var(--teal-deep);line-height:1}
+  .stat3 .s .l{font-size:10.5px;color:var(--ink-soft);margin-top:5px;line-height:1.3}
+  .model{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+  .model .m{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px;align-items:flex-start}
+  .model .m .mi{font-size:16px}
+  .model .m .mt b{font-size:13.5px;display:block;margin-bottom:2px}
+  .model .m .mt span{font-size:12px;color:var(--ink-soft);line-height:1.45}
+  .road{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .road .r{display:flex;gap:11px;align-items:baseline;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+  .road .r .p{font-size:10.5px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:6px;flex-shrink:0}
+  .road .r.p0 .p{background:var(--teal-tint);color:var(--teal-deep)}
+  .road .r.p1 .p{background:var(--honey-tint);color:var(--honey-deep)}
+  .road .r.p2 .p{background:#EDE7DA;color:var(--ink-soft)}
+  .road .r span{font-size:12.5px;color:var(--ink-soft);line-height:1.4}
+  .vs{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:8px}
+  .vs .vr{display:flex;padding:11px 14px;border-bottom:1px solid var(--line-soft);font-size:12.5px;gap:10px}
+  .vs .vr:last-child{border-bottom:0}
+  .vs .vr .lab{width:74px;flex-shrink:0;color:var(--ink-faint);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding-top:1px}
+  .vs .vr .ours{flex:1;font-weight:600;color:var(--teal-deep)}
+  .disc{font-size:11px;color:var(--ink-faint);text-align:center;margin-top:6px;font-style:italic}
+
+  /* ============ TAB BAR ============ */
+  .tabs{display:flex;background:linear-gradient(180deg,#FBF6EC,#F4ECDB);border-top:1px solid var(--line);flex-shrink:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+  .tab{flex:1;border:0;background:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;color:var(--ink-faint);border-radius:12px}
+  .tab .ti{font-size:19px;line-height:1}
+  .tab .tl{font-size:10px;font-weight:700;letter-spacing:.02em}
+  .tab.on{color:var(--teal-deep)}
+  .tab.on .ti{transform:translateY(-1px)}
+
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+
+  <!-- top bar -->
+  <div class="top hidden" id="topbar">
+    <div class="brand">
+      <span class="mark">🛡️</span>
+      <span><b>INTO Guard</b><small>Spending gatekeeper</small></span>
+    </div>
+    <div class="topactions">
+      <button class="reset bpbtn" id="bpBtn">Blueprint</button>
+      <button class="reset" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <!-- main scroll -->
+  <div class="scroll" id="scroll"></div>
+
+  <!-- tab bar -->
+  <div class="tabs hidden" id="tabbar">
+    <button class="tab" data-tab="home"><span class="ti">🏠</span><span class="tl">Home</span></button>
+    <button class="tab" data-tab="subs"><span class="ti">🔁</span><span class="tl">Subscriptions</span></button>
+    <button class="tab" data-tab="fixed"><span class="ti">🏦</span><span class="tl">Fixed</span></button>
+  </div>
+
+  <!-- success overlay -->
+  <div class="success" id="success">
+    <div class="ring">🎉</div>
+    <h2 id="successName">Cancelled</h2>
+    <div class="money" id="successMoney">$0/yr</div>
+    <p id="successMsg">back in your pocket.</p>
+    <button id="successBtn">Nice</button>
+  </div>
+
+</div>
+
+<script>
+/* ============================ DATA ============================ */
+const SUBS = [
+  // forgotten / zombie
+  {id:'peloton', name:'Peloton App', icon:'P', color:'#111', price:12.99, cycle:'mo', next:'Jul 20', zombie:'Unused 4 months', since:'22 months', spent:285,
+    guide:[
+      "Go to <b>onepeloton.com</b> and sign in (not the app).",
+      "Open <b>Account → Membership → Subscriptions</b>.",
+      "Choose <b>Cancel Peloton App Membership</b> and confirm.",
+      "⚠️ You <b>can't</b> cancel this from the phone app — it has to be done on the web."
+    ],
+    beforeType:'info', before:"You've got 6 days left this cycle. Cancel now and you keep access through <b>Jul 20</b> — no early cutoff."},
+  {id:'audible', name:'Audible', icon:'A', color:'#F8991C', price:14.95, cycle:'mo', next:'Jul 18', zombie:'Unused 5 months', since:'14 months', spent:209,
+    guide:[
+      "Go to <b>audible.com</b> on a browser and sign in.",
+      "Open <b>Account Details → Cancel membership</b>.",
+      "Audible will offer you <b>3 free months</b> to stay — decline it to finish cancelling.",
+      "Your unused credits stay in your library after you cancel."
+    ],
+    beforeType:'warn', before:"You have <b>2 unused credits</b> ($30 value). Spend them before you cancel — you'll lose them otherwise."},
+  {id:'siriusxm', name:'SiriusXM', icon:'S', color:'#0033A0', price:8.00, cycle:'mo', next:'Jul 24', zombie:'Unused 6 months', since:'18 months', spent:144,
+    guide:[
+      "SiriusXM won't let you cancel online with one click — it routes you to chat.",
+      "Go to <b>siriusxm.com → Log in → Cancel Subscription</b>.",
+      "In chat, type <b>\"cancel\"</b> and hold firm through the retention offers.",
+      "Prefer the phone? Call <b>1-866-635-2349</b> and say \"cancel.\""
+    ],
+    beforeType:'info', before:"They'll pitch you a discounted rate to stay. If you actually want it, that's fine — but decide before, not in the moment."},
+  // active
+  {id:'netflix', name:'Netflix', icon:'N', color:'#E50914', price:17.99, cycle:'mo', next:'Jul 28', hike:'was $15.49',
+    guide:["Open <b>netflix.com/account</b>.","Select <b>Cancel Membership</b>.","You keep access until the end of the paid period. No fees."],
+    beforeType:'info', before:"Your price went up <b>$2.50/mo</b> in March — that's $30/yr more for the same plan."},
+  {id:'spotify', name:'Spotify', icon:'♫', color:'#1DB954', price:11.99, cycle:'mo', next:'Jul 15',
+    guide:["Go to <b>spotify.com/account</b> (not the app — Apple blocks in-app cancel).","Open <b>Your Plan → Change Plan → Cancel Premium</b>.","You drop to Free at the end of the cycle."],
+    beforeType:'info', before:"You're an active listener here — this one's probably worth keeping."},
+  {id:'disney', name:'Disney+', icon:'D', color:'#113CCF', price:13.99, cycle:'mo', next:'Aug 02',
+    guide:["Open <b>disneyplus.com → Profile → Account</b>.","Select <b>Cancel Subscription</b> under your plan.","Access continues until the billing date."],
+    beforeType:'info', before:"Bundling with Hulu/ESPN+ could cut this by ~$6/mo if you use them."},
+  {id:'max', name:'Max', icon:'M', color:'#0046FF', price:15.99, cycle:'mo', next:'Jul 19',
+    guide:["Go to <b>max.com → Settings → Subscription</b>.","Select <b>Manage Subscription → Cancel</b>.","If you subscribed through Apple, cancel in iPhone Settings instead."],
+    beforeType:'info', before:"Watched twice in the last 90 days. Worth a look."},
+  {id:'icloud', name:'iCloud+', icon:'☁', color:'#3693F3', price:2.99, cycle:'mo', next:'Jul 16',
+    guide:["On iPhone: <b>Settings → [your name] → iCloud → Manage Account Storage</b>.","Tap <b>Change Storage Plan → Downgrade</b>.","⚠️ Make sure your photos/backups fit the free 5GB first, or you'll lose new backups."],
+    beforeType:'warn', before:"You're using <b>38GB</b>. Downgrading to free (5GB) will stop new backups — keep this one."},
+  {id:'nyt', name:'The New York Times', icon:'T', color:'#000', price:17.00, cycle:'mo', next:'Jul 22', hike:'was $4.25 (intro ended)',
+    guide:["Go to <b>nytimes.com/subscription</b>.","Select <b>Cancel or manage your subscription</b>.","They route you to chat/phone for full cancel — push through the offers."],
+    beforeType:'warn', before:"Your $4.25 intro rate <b>ended</b> — you're now at full $17/mo. Classic silent jump."},
+  {id:'adobe', name:'Adobe Creative Cloud', icon:'Ai', color:'#DA1F26', price:54.99, cycle:'mo', next:'Jul 25', hike:'was $52.99',
+    guide:["Go to <b>account.adobe.com → Plans</b>.","Select <b>Manage plan → Cancel plan</b>.","⚠️ Cancelling early may trigger a <b>fee (50% of remaining term)</b> — check your renewal date first."],
+    beforeType:'warn', before:"Annual plan billed monthly — cancelling mid-term can cost a <b>~$165 early-termination fee</b>. Time it to your renewal."},
+  {id:'linkedin', name:'LinkedIn Premium', icon:'in', color:'#0A66C2', price:39.99, cycle:'mo', next:'Jul 30', hike:'was $29.99',
+    guide:["Go to <b>linkedin.com → Me → Access My Premium</b>.","Select <b>Manage → Cancel Subscription</b>.","You keep Premium features until the period ends."],
+    beforeType:'info', before:"Jumped <b>$10/mo</b> at renewal. If you're not job-hunting right now, this is an easy $480/yr to pause."},
+  {id:'prime', name:'Amazon Prime', icon:'a', color:'#FF9900', price:139, cycle:'yr', next:'Jul 16', annualSoon:true,
+    guide:["Go to <b>amazon.com → Account → Prime Membership</b>.","Select <b>Manage → End Membership</b>.","Amazon may offer a partial refund if you haven't used benefits this term."],
+    beforeType:'info', before:"Renews in <b>3 days</b> for the full year. If you mostly want free shipping, decide now — after Jul 16 you're locked in for 12 months."}
+];
+
+const FIXED = [
+  {name:'Rent', sub:'Oakwood Apartments', day:'01', month:'Aug', amt:1850, ic:'🏠'},
+  {name:'Car loan', sub:'Toyota Financial', day:'05', month:'Aug', amt:390, ic:'🚗'},
+  {name:'Auto + renters insurance', sub:'Geico', day:'12', month:'Aug', amt:210, ic:'🛡️'},
+  {name:'Electric + gas', sub:'ConEd', day:'15', month:'Aug', amt:165, ic:'⚡'},
+  {name:'Internet + phone', sub:'Verizon', day:'15', month:'Aug', amt:100, ic:'📶'}
+];
+
+// Free trials currently running — will convert to paid unless cancelled.
+const TRIALS = [
+  {id:'calm', name:'Calm', icon:'C', color:'#2A4B8D', trial:'7-day free trial', ends:'Jul 15', daysLeft:2, then:69.99, thenCycle:'yr',
+    guide:[
+      "Cancel from the web, not the app: go to <b>calm.com</b> and sign in.",
+      "Open <b>Account → Manage Subscription</b>.",
+      "Select <b>Cancel Subscription</b> and confirm.",
+      "You keep full access until <b>Jul 15</b> — you just won't be charged."
+    ]},
+  {id:'paramount', name:'Paramount+', icon:'P', color:'#0064FF', trial:'1-month free trial', ends:'Jul 20', daysLeft:7, then:11.99, thenCycle:'mo',
+    guide:[
+      "Go to <b>paramountplus.com → Account</b> and sign in.",
+      "Open <b>Subscription & Billing → Cancel Subscription</b>.",
+      "If you started the trial through Apple, cancel in <b>iPhone Settings</b> instead.",
+      "Access runs through <b>Jul 20</b>, then it simply ends."
+    ]}
+];
+
+const TAKEHOME = 4300;
+
+/* ============================ STATE ============================ */
+const KEY = 'intoguard_v1';
+function load(){ try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}} }
+function save(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+let state = Object.assign({user:null, connected:false, cancelled:[], tab:'home'}, load());
+
+function findItem(id){ return SUBS.find(x=>x.id===id) || TRIALS.find(x=>x.id===id); }
+function annualCost(s){
+  if(s.trial) return s.thenCycle==='yr' ? s.then : s.then*12;
+  return s.cycle==='yr' ? s.price : s.price*12;
+}
+function savedTotal(){ return state.cancelled.reduce((t,id)=>{const s=findItem(id);return t+(s?annualCost(s):0)},0); }
+const TRIALS_ALL = TRIALS.slice();
+function trialsLeft(){ return TRIALS_ALL.filter(t=>!state.cancelled.includes(t.id)); }
+function trialExposureYr(){ return trialsLeft().reduce((t,x)=>t+annualCost(x),0); }
+function monthlyCost(s){ return s.cycle==='yr' ? s.price/12 : s.price; }
+function subsMonthly(){ return SUBS.filter(s=>!state.cancelled.includes(s.id)).reduce((t,s)=>t+monthlyCost(s),0); }
+function fixedMonthly(){ return FIXED.reduce((t,f)=>t+f.amt,0); }
+function committed(){ return subsMonthly()+fixedMonthly(); }
+function money(n,dec=0){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+
+const ZOMBIES = SUBS.filter(s=>s.zombie);
+function leakYr(){ return ZOMBIES.filter(s=>!state.cancelled.includes(s.id)).reduce((t,s)=>t+annualCost(s),0); }
+function zombiesLeft(){ return ZOMBIES.filter(s=>!state.cancelled.includes(s.id)).length; }
+
+/* ============================ EL HELPERS ============================ */
+const scroll = document.getElementById('scroll');
+const topbar = document.getElementById('topbar');
+const tabbar = document.getElementById('tabbar');
+function subIcon(s,size){ return `<span class="ic" style="background:${s.color}">${s.icon}</span>`; }
+
+/* ============================ AUTH (demo) ============================ */
+function renderAuth(){
+  const mode = state.authMode || 'signup';
+  scroll.innerHTML = `
+    <div class="connect">
+      <div class="badge">🛡️</div>
+      <h1 style="font-size:24px;margin-bottom:10px">Take back control of your subscriptions.</h1>
+      <p class="sub" style="margin-bottom:0">Create your account to see what's quietly leaking — and stop it before the next charge.</p>
+      <div class="toggle">
+        <button data-m="signin" class="${mode==='signin'?'on':''}">Sign in</button>
+        <button data-m="signup" class="${mode==='signup'?'on':''}">Create account</button>
+      </div>
+      ${mode==='signup'?`<div class="field"><label>Name</label><input id="f_name" placeholder="What should we call you?" autocomplete="name"></div>`:''}
+      <div class="field"><label>Email</label><input id="f_email" type="email" placeholder="you@email.com" autocomplete="email"></div>
+      <div class="field"><label>Password</label><input id="f_pass" type="password" placeholder="${mode==='signup'?'Create a password':'Your password'}" autocomplete="current-password"></div>
+      <div class="autherr" id="authErr"></div>
+      <button class="btn-primary" id="authBtn">${mode==='signup'?'Create account & continue':'Sign in'}</button>
+      <div class="reassure"><span>🔒</span> <b>Demo only.</b>&nbsp;Your account stays in this browser — nothing is uploaded.</div>
+    </div>`;
+
+  scroll.querySelectorAll('.toggle button').forEach(b=>{
+    b.onclick = ()=>{ state.authMode = b.dataset.m; renderAuth(); };
+  });
+  document.getElementById('authBtn').onclick = ()=>{
+    const email = (document.getElementById('f_email').value||'').trim();
+    const pass = (document.getElementById('f_pass').value||'').trim();
+    const nameEl = document.getElementById('f_name');
+    const name = nameEl ? (nameEl.value||'').trim() : '';
+    const err = document.getElementById('authErr');
+    if(!email || !email.includes('@')){ err.textContent = 'Enter a valid email address.'; return; }
+    if(pass.length < 4){ err.textContent = 'Password needs at least 4 characters.'; return; }
+    state.user = { name: name || email.split('@')[0], email };
+    delete state.authMode;
+    save(state); render();
+  };
+}
+
+/* ============================ CONNECT ============================ */
+function renderConnect(){
+  tabbar.classList.add('hidden');
+  scroll.innerHTML = `
+    <div class="connect">
+      <div class="badge">🛡️</div>
+      <h1>Every subscription you forgot is <em>still charging you.</em></h1>
+      <p class="sub">Connect your inbox and INTO Guard digs up every recurring charge hiding in your receipts — including the ones you meant to cancel months ago.</p>
+      <div class="provider-row">
+        <div class="prov"><span class="g">✉️</span>Gmail</div>
+        <div class="prov"><span class="g">📧</span>Outlook</div>
+        <div class="prov"><span class="g">📮</span>iCloud Mail</div>
+      </div>
+      <button class="btn-primary" id="connectBtn">Connect inbox</button>
+      <div class="reassure"><span>🔒</span> <b>Read-only.</b>&nbsp;We only scan receipts — never your personal email.</div>
+    </div>`;
+  document.getElementById('connectBtn').onclick = runScan;
+}
+
+/* ============================ SCAN ============================ */
+function runScan(){
+  scroll.innerHTML = `
+    <div class="scan">
+      <div class="scan-head">Reading your receipts…</div>
+      <div class="scan-sub">Looking through 3,412 emails for recurring charges.</div>
+      <div class="scan-count num" id="scanCount">0</div>
+      <div class="scan-count-lab">subscriptions found</div>
+      <div class="scan-list" id="scanList"></div>
+    </div>`;
+  const list = document.getElementById('scanList');
+  const counter = document.getElementById('scanCount');
+  const order = ['netflix','spotify','peloton','icloud','adobe','audible','disney','nyt','max','siriusxm','linkedin','prime'];
+  let i = 0;
+  function step(){
+    if(i>=order.length){ setTimeout(scanSummary, 520); return; }
+    const s = SUBS.find(x=>x.id===order[i]);
+    const row = document.createElement('div');
+    row.className='scan-item';
+    row.innerHTML = `<span class="ic" style="background:${s.color}">${s.icon}</span>
+      <span class="nm">${s.name}</span>
+      <span class="amt">${money(s.price, s.price%1?2:0)}/${s.cycle}</span>
+      <span class="chk">✓</span>`;
+    list.prepend(row);
+    counter.textContent = i+1;
+    i++;
+    // keep only last few visible
+    while(list.children.length>5) list.removeChild(list.lastChild);
+    setTimeout(step, 240 + (i>7?60:0));
+  }
+  setTimeout(step, 500);
+}
+
+function scanSummary(){
+  scroll.innerHTML = `
+    <div class="scan" style="justify-content:center;align-items:center;text-align:center">
+      <div class="scan-count num" style="font-size:70px">${SUBS.length}</div>
+      <div class="scan-count-lab">subscriptions · ${money(Math.round(subsMonthly()))}/mo</div>
+      <div class="leak" style="width:100%;margin:24px 0 8px;cursor:default">
+        <div class="leak-top"><span class="dot"></span><span class="t">Heads up</span></div>
+        <h3><span class="n">${zombiesLeft()}</span> of them look forgotten — you haven't touched them in months.</h3>
+      </div>
+      <button class="btn-primary" id="seeBtn" style="margin-top:16px">See what I found</button>
+    </div>`;
+  document.getElementById('seeBtn').onclick = ()=>{ state.connected=true; state.tab='home'; save(state); render(); };
+}
+
+/* ============================ HOME ============================ */
+function renderHome(){
+  const leak = leakYr(); const zl = zombiesLeft(); const sv = savedTotal();
+  const subM = Math.round(subsMonthly());
+  const fixM = fixedMonthly();
+  const total = Math.round(committed());
+  const nSubs = SUBS.filter(s=>!state.cancelled.includes(s.id)).length;
+  const charges = nSubs + FIXED.length;
+
+  let html = `<div class="pad">
+    <div class="greet">Good morning, ${(state.user&&state.user.name)||'there'}</div>
+    <div class="greet-h">Here's what's on autopilot.</div>
+
+    <div class="hero">
+      <div class="lab">Leaving your accounts every month</div>
+      <div class="big">${money(total)}<span>/mo</span></div>
+      <div class="meter-lab" style="margin-top:14px">Across <b>${charges} recurring charges</b> — money that moves before you decide anything.</div>
+    </div>`;
+
+  const tl = trialsLeft();
+  if(tl.length){
+    const soonest = tl.reduce((m,x)=>Math.min(m,x.daysLeft), 99);
+    html += `<div class="trial" id="trialCard">
+      <div class="trial-top"><span class="clock">⏰</span><span class="t">Free trial ending</span>
+        <span class="countdown ${soonest<=3?'soon':''}">${soonest} day${soonest>1?'s':''} left</span></div>
+      <h3><span class="n">${tl.length}</span> free trial${tl.length>1?'s are':' is'} about to start charging you — <span class="n">${money(trialExposureYr(),2)}</span>/yr if you do nothing.</h3>
+      <div class="go">Cancel before they convert <span>→</span></div>
+    </div>`;
+  }
+
+  if(zl>0){
+    html += `<div class="leak" id="leakCard">
+      <div class="leak-top"><span class="dot"></span><span class="t">Leaking money</span></div>
+      <h3><span class="n">${zl}</span> forgotten subscription${zl>1?'s':''} ${zl>1?'are':'is'} draining <span class="n">${money(leak,2)}</span>/yr</h3>
+      <div class="go">Review them <span>→</span></div>
+    </div>`;
+  }
+
+  if(sv>0){
+    html += `<div class="saved">
+      <div class="coin">💰</div>
+      <div class="txt"><small>Saved so far</small><div class="v">${money(sv,2)}<span>/yr</span></div></div>
+    </div>`;
+  }
+
+  html += `<div class="sec-label">What you can do about it</div>
+    <div class="bucket teal" data-go="subs">
+      <span class="bic">🔁</span>
+      <div class="btxt"><div class="bl">Cancelable</div><div class="bd">${nSubs} subscriptions${zl>0?` · ${zl} forgotten`:''}</div></div>
+      <div class="bright"><div class="bv num">${money(subM)}<span>/mo</span></div><div class="bgo">Review →</div></div>
+    </div>
+    <div class="bucket" data-go="fixed">
+      <span class="bic">🏦</span>
+      <div class="btxt"><div class="bl">Fixed bills</div><div class="bd">Rent, car, insurance, utilities</div></div>
+      <div class="bright"><div class="bv num">${money(fixM)}<span>/mo</span></div><div class="bgo">Track →</div></div>
+    </div>
+  </div>`;
+  scroll.innerHTML = html;
+
+  const lc = document.getElementById('leakCard');
+  if(lc) lc.onclick = ()=>{ state.tab='subs'; save(state); render(); };
+  const tc = document.getElementById('trialCard');
+  if(tc) tc.onclick = ()=>{ state.tab='subs'; save(state); render(); };
+  scroll.querySelectorAll('.bucket').forEach(b=>{
+    b.onclick = ()=>{ state.tab=b.dataset.go; save(state); render(); };
+  });
+}
+
+/* ============================ SUBSCRIPTIONS ============================ */
+function renderSubs(){
+  const active = SUBS.filter(s=>!s.zombie);
+  const zombies = SUBS.filter(s=>s.zombie);
+  function card(s){
+    const done = state.cancelled.includes(s.id);
+    let tags='';
+    if(s.zombie && !done) tags += `<span class="tag zt">${s.zombie}</span>`;
+    if(s.hike && !done) tags += `<span class="tag hike">↑ ${s.hike}</span>`;
+    if(done) tags = `<span class="tag cx">✓ Cancelled</span>`;
+    return `<div class="sub ${s.zombie?'zombie':''} ${done?'done':''}" data-id="${s.id}">
+      ${subIcon(s)}
+      <div class="mid">
+        <div class="nm">${s.name}</div>
+        <div class="meta">${tags || `Renews ${s.next}`}</div>
+      </div>
+      <div class="right">
+        <div class="price num">${money(s.price, s.price%1?2:0)}</div>
+        <div class="cyc">/${s.cycle}</div>
+      </div>
+    </div>`;
+  }
+  function trialCard(t){
+    const done = state.cancelled.includes(t.id);
+    const soon = t.daysLeft<=3;
+    const meta = done
+      ? `<span class="tag cx">✓ Cancelled — dodged the charge</span>`
+      : `<span class="tag tr ${soon?'soon':''}">${t.daysLeft} day${t.daysLeft>1?'s':''} left</span> Ends ${t.ends} · then ${money(t.then, t.then%1?2:0)}/${t.thenCycle}`;
+    return `<div class="sub ${done?'done':''}" data-id="${t.id}">
+      ${subIcon(t)}
+      <div class="mid"><div class="nm">${t.name}</div><div class="meta">${meta}</div></div>
+      <div class="right"><div class="price num" style="color:var(--teal-deep)">Free</div><div class="cyc">now</div></div>
+    </div>`;
+  }
+  const trials = TRIALS_ALL;
+  let html = `<div class="pad">
+    <div class="eyebrow">Your subscriptions</div>
+    <div class="greet-h" style="margin-bottom:14px">${SUBS.length} charges · ${trialsLeft().length} trial${trialsLeft().length===1?'':'s'} ending</div>`;
+  if(trials.length){
+    html += `<div class="subgroup-lab"><span>⏰ Free trials — cancel before they charge you</span><span class="ln"></span></div>`;
+    html += trials.map(trialCard).join('');
+  }
+  if(zombies.length){
+    html += `<div class="subgroup-lab"><span>⚠️ Forgotten — not used in months</span><span class="ln"></span></div>`;
+    html += zombies.map(card).join('');
+  }
+  html += `<div class="subgroup-lab act"><span>Active</span><span class="ln"></span></div>`;
+  html += active.map(card).join('');
+  html += `</div>`;
+  scroll.innerHTML = html;
+  scroll.querySelectorAll('.sub').forEach(el=>{
+    el.onclick = ()=>{ state.detail = el.dataset.id; save(state); renderDetail(); };
+  });
+}
+
+/* ============================ DETAIL ============================ */
+function renderDetail(){
+  const s = findItem(state.detail);
+  const done = state.cancelled.includes(s.id);
+  const yr = annualCost(s);
+  const isTrial = !!s.trial;
+
+  const headSub = isTrial
+    ? `${s.trial} · ends ${s.ends}`
+    : `${money(s.price, s.price%1?2:0)}/${s.cycle} · renews ${s.next}`;
+
+  let html = `<div class="pad">
+    <button class="back" id="backBtn">← Subscriptions</button>
+    <div class="d-head">
+      <span class="ic" style="background:${s.color}">${s.icon}</span>
+      <div><div class="nm">${s.name}</div><div class="pr">${headSub}</div></div>
+    </div>`;
+
+  if(isTrial){
+    html += `<div class="d-stat">
+      <div class="box"><small>Free now, then</small><div class="v warn">${money(s.then, s.then%1?2:0)}/${s.thenCycle}</div></div>
+      <div class="box"><small>Charges in</small><div class="v ${s.daysLeft<=3?'warn':''}">${s.daysLeft} day${s.daysLeft>1?'s':''}</div></div>
+    </div>`;
+  } else {
+    html += `<div class="d-stat">
+      <div class="box"><small>Costs you</small><div class="v ${s.zombie?'warn':''}">${money(yr,2)}/yr</div></div>
+      ${s.since?`<div class="box"><small>Paid since sign-up</small><div class="v">${money(s.spent)}</div></div>`:`<div class="box"><small>Billing</small><div class="v" style="font-size:14px">${s.cycle==='yr'?'Annual':'Monthly'}</div></div>`}
+    </div>`;
+  }
+
+  if(isTrial){
+    html += `<div class="callout warn">⏰ <b>Cancel before ${s.ends} and you pay nothing.</b> Miss it and ${s.name} charges you ${money(s.then, s.then%1?2:0)}${s.thenCycle==='yr'?' for the year':'/mo'} automatically.</div>`;
+  } else {
+    if(s.zombie){
+      html += `<div class="callout warn">🕸️ <b>You haven't opened ${s.name} in ${s.zombie.replace('Unused ','')}.</b> It's been quietly billing the whole time.</div>`;
+    }
+    if(s.before){
+      html += `<div class="callout ${s.beforeType}">${s.beforeType==='warn'?'⚠️':'💡'} <b>Before you cancel — </b>${s.before}</div>`;
+    }
+  }
+
+  if(!done){
+    const steps = s.guide.map((g,i)=>`<li><span class="n">${i+1}</span><span class="s">${g}</span></li>`).join('');
+    html += `<div class="guide">
+      <h4>How to cancel ${s.name}</h4>
+      <ol class="steps">${steps}</ol>
+    </div>`;
+    const cta = isTrial ? 'Cancel it — dodge the charge' : 'I cancelled it — track my savings';
+    html += `<button class="btn-cancel" id="cancelBtn">${cta}</button>
+      <button class="btn-ghost" id="keepBtn">Keep it for now</button>`;
+  } else {
+    const doneMsg = isTrial
+      ? `✓ <b>Cancelled before it could charge you.</b> ${s.name} ends ${s.ends} — no bill.`
+      : `✓ <b>Marked as cancelled.</b> We'll keep watching in case ${s.name} tries to charge you again.`;
+    html += `<div class="callout info">${doneMsg}</div>
+      <button class="btn-ghost" id="keepBtn">← Back to subscriptions</button>`;
+  }
+  html += `</div>`;
+  scroll.innerHTML = html;
+
+  document.getElementById('backBtn').onclick = ()=>{ state.tab='subs'; renderSubs(); };
+  const keep = document.getElementById('keepBtn'); if(keep) keep.onclick = ()=>{ state.tab='subs'; renderSubs(); };
+  const cancelBtn = document.getElementById('cancelBtn');
+  if(cancelBtn) cancelBtn.onclick = ()=> doCancel(s);
+}
+
+function doCancel(s){
+  if(!state.cancelled.includes(s.id)) state.cancelled.push(s.id);
+  save(state);
+  const yr = annualCost(s);
+  const isTrial = !!s.trial;
+  document.getElementById('successName').textContent = isTrial ? `Charge dodged.` : `${s.name} — done.`;
+  document.getElementById('successMoney').textContent = money(yr,2)+'/yr';
+  document.getElementById('successMsg').textContent = isTrial
+    ? `You cancelled ${s.name} before it could charge you. That's ${money(yr,2)} you'll never miss.`
+    : `back in your pocket. That's ${money(yr*3,0)} over the next three years.`;
+  const ov = document.getElementById('success');
+  ov.classList.add('show');
+  document.getElementById('successBtn').onclick = ()=>{
+    ov.classList.remove('show'); state.tab='subs'; renderSubs();
+  };
+}
+
+/* ============================ FIXED ============================ */
+function renderFixed(){
+  const prime = SUBS.find(x=>x.id==='prime');
+  const primeActive = !state.cancelled.includes('prime');
+  let html = `<div class="pad">
+    <div class="eyebrow">Fixed bills</div>
+    <div class="greet-h" style="margin-bottom:6px">The bills you can't just cancel</div>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:18px">Rent, car, insurance, internet and phone. You won't cancel these — but you can see every one coming, never miss a payment, and later switch or negotiate them down.</p>`;
+
+  if(primeActive){
+    html += `<div class="push">
+      <span class="bell">🔔</span>
+      <div><div class="pt">Renews in 3 days</div>
+      <div class="pm"><b>Amazon Prime</b> renews for <span class="n">${money(139)}</span> (full year) on <b>Jul 16</b>. Want to keep it, or cancel before you're locked in?</div></div>
+    </div>`;
+  }
+
+  html += `<div class="sec-label">Coming up</div><div class="upcoming">`;
+  FIXED.forEach(f=>{
+    html += `<div class="up-row">
+      <div class="day"><div class="d num">${f.day}</div><div class="m">${f.month}</div></div>
+      <div class="info"><div class="n">${f.ic} ${f.name}</div><div class="c">${f.sub}</div></div>
+      <div class="amt num">${money(f.amt)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  const total = fixedMonthly();
+  html += `<div class="hero" style="margin-top:4px">
+    <div class="lab">Fixed bills each month</div>
+    <div class="big">${money(total)}<span>/mo</span></div>
+    <div class="meter-lab" style="margin-top:12px;opacity:.85">${money(total*12)}/yr in rent, car, insurance and utilities.</div>
+  </div>`;
+  html += `</div>`;
+  scroll.innerHTML = html;
+}
+
+/* ============================ BLUEPRINT ============================ */
+function renderBlueprint(){
+  scroll.innerHTML = `<div class="pad">
+    <button class="back" id="bpBack">← Back to app</button>
+
+    <div class="bp-hero">
+      <div class="k">The pitch</div>
+      <h2>Recurring spend runs on <em>forgetting.</em> INTO Guard is the gatekeeper that stops it.</h2>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">01</span> Problem</div>
+      <h3>Subscriptions are designed to be forgotten.</h3>
+      <p>Signing up is one tap. Cancelling means a website, a phone tree, three retention offers. Companies bet you won't bother — so the money leaks quietly, month after month, and free trials convert while you're not looking.</p>
+      <div class="stat3">
+        <div class="s"><div class="v">12</div><div class="l">avg subscriptions per household</div></div>
+        <div class="s"><div class="v">3</div><div class="l">they never use</div></div>
+        <div class="s"><div class="v">$290</div><div class="l">wasted per year</div></div>
+      </div>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">02</span> Solution</div>
+      <h3>Find it. Watch it. Cancel it.</h3>
+      <p>One place that surfaces every recurring charge, flags what you've forgotten and what quietly raised its price, warns you <b>before a free trial converts</b>, and walks you through cancelling — service by service, in plain steps.</p>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">03</span> Why now</div>
+      <h3>Receipts already live in every inbox.</h3>
+      <p>The data was always there — messy, unstructured, unsearchable. <b>AI can finally read it</b> and turn a pile of receipts into a clean ledger. Users get value on day one with no bank login required.</p>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">04</span> Market</div>
+      <h3>The subscription economy is a trillion-dollar surface.</h3>
+      <div class="stat3">
+        <div class="s"><div class="v">$1.5T</div><div class="l">global subscriptions by 2028</div></div>
+        <div class="s"><div class="v">$200B+</div><div class="l">on unwanted charges</div></div>
+        <div class="s"><div class="v">70%</div><div class="l">underestimate their spend</div></div>
+      </div>
+      <div class="disc">Figures illustrative — for narrative, not a data room.</div>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">05</span> Business model</div>
+      <h3>Three ways to earn.</h3>
+      <div class="model">
+        <div class="m"><span class="mi">💳</span><div class="mt"><b>Consumer subscription</b><span>$6–10/mo for monitoring, alerts and cancel help.</span></div></div>
+        <div class="m"><span class="mi">✂️</span><div class="mt"><b>Savings cut</b><span>Take a share of what we save you — no loss felt by the user.</span></div></div>
+        <div class="m"><span class="mi">🏢</span><div class="mt"><b>B2B SaaS-spend management</b><span>The high-value wedge: companies bleed on redundant tool subscriptions no one tracks.</span></div></div>
+      </div>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">06</span> Moat</div>
+      <h3>Trust and coverage compound.</h3>
+      <p>Every parsed receipt sharpens detection. Every cancel-guide we perfect is one a competitor must rebuild. And <b>continuous monitoring</b> — price hikes, new charges, trial conversions — turns a one-time cleanup into a reason to stay for years.</p>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">07</span> vs Rocket Money</div>
+      <h3>We don't fight them head-on.</h3>
+      <div class="vs">
+        <div class="vr"><span class="lab">Geography</span><span class="ours">Markets they underserve, not the crowded US consumer</span></div>
+        <div class="vr"><span class="lab">Segment</span><span class="ours">B2B SaaS-spend — higher willingness to pay</span></div>
+        <div class="vr"><span class="lab">Depth</span><span class="ours">Not just cancel — switch to cheaper, negotiate down</span></div>
+      </div>
+    </div>
+
+    <div class="bp">
+      <div class="k"><span class="idx">08</span> Roadmap</div>
+      <h3>Ship the aha first.</h3>
+      <div class="road">
+        <div class="r p0"><span class="p">P0</span><span>Inbox scan · detect subscriptions · flag forgotten · trial reminders · cancel guide</span></div>
+        <div class="r p1"><span class="p">P1</span><span>Price-hike & new-charge alerts · full fixed-spend view · one-tap cancel</span></div>
+        <div class="r p2"><span class="p">P2</span><span>Bank connect · auto-cancel · negotiate & switch to cheaper plans</span></div>
+      </div>
+    </div>
+
+  </div>`;
+  document.getElementById('bpBack').onclick = ()=>{ state.view=null; save(state); render(); };
+}
+
+/* ============================ ROUTER ============================ */
+function render(){
+  scroll.scrollTop = 0;
+
+  if(!state.user){ topbar.classList.add('hidden'); tabbar.classList.add('hidden'); renderAuth(); return; }
+
+  topbar.classList.remove('hidden');
+  document.getElementById('bpBtn').classList.toggle('on', state.view==='blueprint');
+
+  if(state.view==='blueprint'){ tabbar.classList.add('hidden'); renderBlueprint(); return; }
+  if(!state.connected){ tabbar.classList.add('hidden'); renderConnect(); return; }
+
+  tabbar.classList.remove('hidden');
+  tabbar.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===state.tab));
+  if(state.tab==='home') renderHome();
+  else if(state.tab==='subs') renderSubs();
+  else if(state.tab==='fixed') renderFixed();
+  else renderHome();
+}
+
+tabbar.querySelectorAll('.tab').forEach(t=>{
+  t.onclick = ()=>{ state.tab=t.dataset.tab; delete state.detail; delete state.view; save(state); render(); };
+});
+document.getElementById('bpBtn').onclick = ()=>{
+  state.view = state.view==='blueprint' ? null : 'blueprint';
+  save(state); render();
+};
+document.getElementById('resetBtn').onclick = ()=>{
+  localStorage.removeItem(KEY);
+  state = {user:null, connected:false, cancelled:[], tab:'home'};
+  render();
+};
+
+render();
+</script>
+</body>
+</html>
